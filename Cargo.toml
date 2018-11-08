@@ -5,3 +5,6 @@ authors = ["Arnaud Valensi <arnaud.valensi@gmail.com>"]
 edition = "2018"
 
 [dependencies]
+gfx = "0.17.1"
+gfx_window_glutin = "0.26.0"
+glutin = "0.18.0"
