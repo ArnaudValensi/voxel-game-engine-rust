@@ -67,6 +67,13 @@ pub fn main() {
         out: main_color
     };
 
+    // FIXME: On Mac 10.14 (Mojave) we need to resize the window after creation.
+    // This is related to this issue https://github.com/tomaka/glutin/issues/1069
+    events_loop.poll_events(|_| {});
+    let logical_size = window.get_outer_size().expect("Window no longer exists");
+    let physical_size = logical_size.to_physical(window.get_hidpi_factor());
+    window.resize(physical_size);
+
     let mut running = true;
     while running {
         events_loop.poll_events(|event| {
