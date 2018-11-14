@@ -10,6 +10,7 @@ extern crate gfx_device_gl;
 extern crate gfx_window_glutin;
 extern crate glutin;
 
+use cgmath::{Deg, Matrix4, Point3, SquareMatrix, Vector3, Vector4};
 use gfx::traits::FactoryExt;
 use gfx::Device;
 use gfx_device_gl::Factory;
@@ -21,12 +22,23 @@ pub type DepthFormat = gfx::format::DepthStencil;
 
 gfx_defines!{
     vertex Vertex {
-        pos: [f32; 2] = "a_Pos",
+        pos: [f32; 3] = "a_Pos",
         color: [f32; 3] = "a_Color",
+    }
+
+    constant Locals {
+        model: [[f32; 4]; 4] = "u_Model",
+        view: [[f32; 4]; 4] = "u_View",
+        proj: [[f32; 4]; 4] = "u_Proj",
     }
 
     pipeline pipe {
         vbuf: gfx::VertexBuffer<Vertex> = (),
+        locals: gfx::ConstantBuffer<Locals> = "Locals",
+        // Global buffers are added for compatibility when constant buffers are not supported.
+        model: gfx::Global<[[f32; 4]; 4]> = "u_Model",
+        view: gfx::Global<[[f32; 4]; 4]> = "u_View",
+        proj: gfx::Global<[[f32; 4]; 4]> = "u_Proj",
         out: gfx::RenderTarget<ColorFormat> = "Target0",
     }
 }
@@ -149,15 +161,15 @@ impl Mesh {
     pub fn new(renderer: &mut Renderer) -> Self {
         let trangles = vec![
             Vertex {
-                pos: [-0.5, -0.5],
+                pos: [-0.5, -0.5, 0.0],
                 color: [1.0, 0.0, 0.0],
             },
             Vertex {
-                pos: [0.5, -0.5],
+                pos: [0.5, -0.5, 0.0],
                 color: [0.0, 1.0, 0.0],
             },
             Vertex {
-                pos: [0.0, 0.5],
+                pos: [0.0, 0.5, 0.0],
                 color: [0.0, 0.0, 1.0],
             },
         ];
@@ -166,10 +178,51 @@ impl Mesh {
             .factory
             .create_vertex_buffer_with_slice(&trangles, ());
 
+        let logical_size = renderer.window.get_inner_size().unwrap();
+        let aspect_ratio = logical_size.width as f32 / logical_size.height as f32;
+
+        let model = Matrix4::identity();
+        let view = Matrix4::look_at(
+            Point3::new(-2.0, 0.0, 1.0),
+            Point3::new(0.0, 0.0, 0.0),
+            Vector3::unit_y(),
+        );
+        let proj = cgmath::perspective(Deg(60.0f32), aspect_ratio, 0.1, 1000.0);
+        let mvp = proj * view * model;
+
+        println!(
+            "mvp * Vector4: {:#?}",
+            mvp * Vector4::<f32>::new(-0.5, -0.5, 0.0, 1.0),
+        );
+
+        // let data = pipe::Data {
+        //     vbuf: vertex_buffer,
+        //     locals: renderer.factory.create_constant_buffer(1),
+        //     model: Matrix4::identity().into(),
+        //     view: view.into(),
+        //     proj: cgmath::perspective(Deg(60.0f32), aspect_ratio, 0.1, 1000.0).into(),
+        //     out_color: renderer.render_target.clone(),
+        //     out_depth: renderer.depth_stencil.clone(),
+        // };
+
         let data = pipe::Data {
             vbuf: vertex_buffer,
+            locals: renderer.factory.create_constant_buffer(1),
+            model: model.into(),
+            view: view.into(),
+            proj: proj.into(),
             out: renderer.render_target.clone(),
         };
+
+        let locals = Locals {
+            model: model.into(),
+            view: view.into(),
+            proj: proj.into(),
+        };
+
+        renderer.encoder
+            .update_buffer(&data.locals, &[locals], 0)
+            .unwrap();
 
         Self { slice, data }
     }
