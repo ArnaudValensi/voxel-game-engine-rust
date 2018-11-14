@@ -1,3 +1,7 @@
+// TODO:
+//   - Use a dynamic number of vertices
+//   - Display a mesh based on a world position
+//   - Display multiple meshes
 #![cfg_attr(target_os = "emscripten", allow(unused_mut))]
 
 #[macro_use]
@@ -143,7 +147,7 @@ struct Mesh {
 
 impl Mesh {
     pub fn new(renderer: &mut Renderer) -> Self {
-        const TRIANGLE: [Vertex; 3] = [
+        let trangles = vec![
             Vertex {
                 pos: [-0.5, -0.5],
                 color: [1.0, 0.0, 0.0],
@@ -160,7 +164,7 @@ impl Mesh {
 
         let (vertex_buffer, slice) = renderer
             .factory
-            .create_vertex_buffer_with_slice(&TRIANGLE, ());
+            .create_vertex_buffer_with_slice(&trangles, ());
 
         let data = pipe::Data {
             vbuf: vertex_buffer,
