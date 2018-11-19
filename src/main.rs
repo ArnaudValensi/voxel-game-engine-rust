@@ -43,6 +43,15 @@ gfx_defines!{
     }
 }
 
+impl Vertex {
+    fn new(p: [i8; 3], c: [f32; 3]) -> Vertex {
+        Vertex {
+            pos: [f32::from(p[0]), f32::from(p[1]), f32::from(p[2])],
+            color: [c[0], c[1], c[2]],
+        }
+    }
+}
+
 const CLEAR_COLOR: [f32; 4] = [0.1, 0.2, 0.3, 1.0];
 
 struct Renderer {
@@ -159,31 +168,60 @@ struct Mesh {
 
 impl Mesh {
     pub fn new(renderer: &mut Renderer) -> Self {
-        let trangles = vec![
-            Vertex {
-                pos: [-0.5, -0.5, 0.0],
-                color: [1.0, 0.0, 0.0],
-            },
-            Vertex {
-                pos: [0.5, -0.5, 0.0],
-                color: [0.0, 1.0, 0.0],
-            },
-            Vertex {
-                pos: [0.0, 0.5, 0.0],
-                color: [0.0, 0.0, 1.0],
-            },
+        const CUBE_COLOR: [f32; 3] = [1.0, 0.2, 0.3];
+
+        let vertex_data = [
+            // top (0, 0, 1)
+            Vertex::new([-1, -1, 1], CUBE_COLOR),
+            Vertex::new([1, -1, 1], CUBE_COLOR),
+            Vertex::new([1, 1, 1], CUBE_COLOR),
+            Vertex::new([-1, 1, 1], CUBE_COLOR),
+            // bottom (0, 0, -1)
+            Vertex::new([-1, 1, -1], CUBE_COLOR),
+            Vertex::new([1, 1, -1], CUBE_COLOR),
+            Vertex::new([1, -1, -1], CUBE_COLOR),
+            Vertex::new([-1, -1, -1], CUBE_COLOR),
+            // right (1, 0, 0)
+            Vertex::new([1, -1, -1], CUBE_COLOR),
+            Vertex::new([1, 1, -1], CUBE_COLOR),
+            Vertex::new([1, 1, 1], CUBE_COLOR),
+            Vertex::new([1, -1, 1], CUBE_COLOR),
+            // left (-1, 0, 0)
+            Vertex::new([-1, -1, 1], CUBE_COLOR),
+            Vertex::new([-1, 1, 1], CUBE_COLOR),
+            Vertex::new([-1, 1, -1], CUBE_COLOR),
+            Vertex::new([-1, -1, -1], CUBE_COLOR),
+            // front (0, 1, 0)
+            Vertex::new([1, 1, -1], CUBE_COLOR),
+            Vertex::new([-1, 1, -1], CUBE_COLOR),
+            Vertex::new([-1, 1, 1], CUBE_COLOR),
+            Vertex::new([1, 1, 1], CUBE_COLOR),
+            // back (0, -1, 0)
+            Vertex::new([1, -1, 1], CUBE_COLOR),
+            Vertex::new([-1, -1, 1], CUBE_COLOR),
+            Vertex::new([-1, -1, -1], CUBE_COLOR),
+            Vertex::new([1, -1, -1], CUBE_COLOR),
+        ];
+
+        let index_data: &[u16] = &[
+            0, 1, 2, 2, 3, 0, // top
+            4, 5, 6, 6, 7, 4, // bottom
+            8, 9, 10, 10, 11, 8, // right
+            12, 13, 14, 14, 15, 12, // left
+            16, 17, 18, 18, 19, 16, // front
+            20, 21, 22, 22, 23, 20, // back
         ];
 
         let (vertex_buffer, slice) = renderer
             .factory
-            .create_vertex_buffer_with_slice(&trangles, ());
+            .create_vertex_buffer_with_slice(&vertex_data, index_data);
 
         let logical_size = renderer.window.get_inner_size().unwrap();
         let aspect_ratio = logical_size.width as f32 / logical_size.height as f32;
 
         let model = Matrix4::identity();
         let view = Matrix4::look_at(
-            Point3::new(-2.0, 0.0, 1.0),
+            Point3::new(-5.0, 2.0, 1.0),
             Point3::new(0.0, 0.0, 0.0),
             Vector3::unit_y(),
         );
@@ -220,7 +258,8 @@ impl Mesh {
             proj: proj.into(),
         };
 
-        renderer.encoder
+        renderer
+            .encoder
             .update_buffer(&data.locals, &[locals], 0)
             .unwrap();
 
