@@ -17,8 +17,14 @@ use gfx_device_gl::Factory;
 use glutin::dpi::LogicalSize;
 use glutin::{Event, GlContext, GlWindow, KeyboardInput, VirtualKeyCode, WindowEvent};
 
+/// Graphics resource type.
+pub type Resources = gfx_device_gl::Resources;
+
 pub type ColorFormat = gfx::format::Rgba8;
 pub type DepthFormat = gfx::format::DepthStencil;
+
+/// Handle to a chunk of GPU memory. It represents a vertex buffer.
+// pub type VertexBufferHandle = gfx::handle::Buffer<Resources, Vertex>;
 
 gfx_defines!{
     vertex Vertex {
@@ -35,10 +41,6 @@ gfx_defines!{
     pipeline pipe {
         vbuf: gfx::VertexBuffer<Vertex> = (),
         locals: gfx::ConstantBuffer<Locals> = "Locals",
-        // Global buffers are added for compatibility when constant buffers are not supported.
-        model: gfx::Global<[[f32; 4]; 4]> = "u_Model",
-        view: gfx::Global<[[f32; 4]; 4]> = "u_View",
-        proj: gfx::Global<[[f32; 4]; 4]> = "u_Proj",
         out: gfx::RenderTarget<ColorFormat> = "Target0",
     }
 }
@@ -58,15 +60,11 @@ struct Renderer {
     pub window: GlWindow,
     pub factory: Factory,
     pub device: gfx_device_gl::Device,
-    pub encoder: gfx::Encoder<gfx_device_gl::Resources, gfx_device_gl::CommandBuffer>,
-    pub render_target: gfx::handle::RenderTargetView<
-        gfx_device_gl::Resources,
-        (gfx::format::R8_G8_B8_A8, gfx::format::Unorm),
-    >,
-    pub depth_stencil: gfx::handle::DepthStencilView<
-        gfx_device_gl::Resources,
-        (gfx::format::D24_S8, gfx::format::Unorm),
-    >,
+    pub encoder: gfx::Encoder<Resources, gfx_device_gl::CommandBuffer>,
+    pub render_target:
+        gfx::handle::RenderTargetView<Resources, (gfx::format::R8_G8_B8_A8, gfx::format::Unorm)>,
+    pub depth_stencil:
+        gfx::handle::DepthStencilView<Resources, (gfx::format::D24_S8, gfx::format::Unorm)>,
 }
 
 impl Renderer {
@@ -114,8 +112,9 @@ impl Renderer {
         self.encoder.clear(&self.render_target, CLEAR_COLOR);
     }
 
-    pub fn draw(&mut self, mesh: &Mesh, material: &Material) {
-        self.encoder.draw(&mesh.slice, &material.pso, &mesh.data);
+    pub fn draw(&mut self, view: &Matrix4<f32>, proj: &Matrix4<f32>, pipe: &mut Pipe) {
+        pipe.update_locals(self, view, proj);
+        self.encoder.draw(&pipe.slice, &pipe.pso, &pipe.data);
     }
     pub fn flush(&mut self) {
         self.encoder.flush(&mut self.device);
@@ -134,12 +133,15 @@ impl Renderer {
     }
 }
 
-struct Material {
-    pso: gfx::PipelineState<gfx_device_gl::Resources, pipe::Meta>,
+struct Pipe {
+    pso: gfx::PipelineState<Resources, pipe::Meta>,
+    data: pipe::Data<Resources>,
+    slice: gfx::Slice<Resources>,
+    transform: Matrix4<f32>,
 }
 
-impl Material {
-    pub fn new(renderer: &mut Renderer) -> Self {
+impl Pipe {
+    pub fn new(renderer: &mut Renderer, mesh: Mesh) -> Self {
         let (vs_code, fs_code) = if cfg!(target_os = "emscripten") {
             (
                 include_bytes!("shader/triangle_300_es.glslv").to_vec(),
@@ -157,133 +159,139 @@ impl Material {
             .create_pipeline_simple(&vs_code, &fs_code, pipe::new())
             .unwrap();
 
-        Self { pso }
-    }
-}
-
-#[derive(Debug, Clone)]
-#[repr(C)]
-pub struct MeshData {
-    pub vertices: Vec<Vertex>,
-    pub indices: Vec<u16>,
-}
-
-impl MeshData {
-    pub fn new() -> Self {
-        Self::default()
-    }
-}
-
-impl Default for MeshData {
-    fn default() -> Self {
-        let vertices: Vec<Vertex> = Vec::new();
-        let indices: Vec<u16> = Vec::new();
-
-        Self {
-            vertices,
-            indices,
-        }
-    }
-}
-
-
-struct Mesh {
-    slice: gfx::Slice<gfx_device_gl::Resources>,
-    data: pipe::Data<gfx_device_gl::Resources>,
-}
-
-impl Mesh {
-    pub fn new(renderer: &mut Renderer) -> Self {
-        const CUBE_COLOR: [f32; 3] = [1.0, 0.2, 0.3];
-
-        let mut mesh_data = MeshData::new();
-
-        mesh_data.vertices = vec![
-            // Top (0, 0, 1)
-            Vertex::new([-1, -1, 1], CUBE_COLOR),
-            Vertex::new([1, -1, 1], CUBE_COLOR),
-            Vertex::new([1, 1, 1], CUBE_COLOR),
-            Vertex::new([-1, 1, 1], CUBE_COLOR),
-            // Bottom (0, 0, -1)
-            Vertex::new([-1, 1, -1], CUBE_COLOR),
-            Vertex::new([1, 1, -1], CUBE_COLOR),
-            Vertex::new([1, -1, -1], CUBE_COLOR),
-            Vertex::new([-1, -1, -1], CUBE_COLOR),
-            // Right (1, 0, 0)
-            Vertex::new([1, -1, -1], CUBE_COLOR),
-            Vertex::new([1, 1, -1], CUBE_COLOR),
-            Vertex::new([1, 1, 1], CUBE_COLOR),
-            Vertex::new([1, -1, 1], CUBE_COLOR),
-            // Left (-1, 0, 0)
-            Vertex::new([-1, -1, 1], CUBE_COLOR),
-            Vertex::new([-1, 1, 1], CUBE_COLOR),
-            Vertex::new([-1, 1, -1], CUBE_COLOR),
-            Vertex::new([-1, -1, -1], CUBE_COLOR),
-            // Front (0, 1, 0)
-            Vertex::new([1, 1, -1], CUBE_COLOR),
-            Vertex::new([-1, 1, -1], CUBE_COLOR),
-            Vertex::new([-1, 1, 1], CUBE_COLOR),
-            Vertex::new([1, 1, 1], CUBE_COLOR),
-            // Back (0, -1, 0)
-            Vertex::new([1, -1, 1], CUBE_COLOR),
-            Vertex::new([-1, -1, 1], CUBE_COLOR),
-            Vertex::new([-1, -1, -1], CUBE_COLOR),
-            Vertex::new([1, -1, -1], CUBE_COLOR),
-        ];
-
-        mesh_data.indices = vec![
-            0, 1, 2, 2, 3, 0, // Top
-            4, 5, 6, 6, 7, 4, // Bottom
-            8, 9, 10, 10, 11, 8, // Right
-            12, 13, 14, 14, 15, 12, // Left
-            16, 17, 18, 18, 19, 16, // Front
-            20, 21, 22, 22, 23, 20, // Back
-        ];
-
-        let (vertex_buffer, slice) = renderer
-            .factory
-            .create_vertex_buffer_with_slice(&mesh_data.vertices, &mesh_data.indices[..]);
-
-        let logical_size = renderer.window.get_inner_size().unwrap();
-        let aspect_ratio = logical_size.width as f32 / logical_size.height as f32;
-
-        let model = Matrix4::identity();
-        let view = Matrix4::look_at(
-            Point3::new(-5.0, 2.0, 1.0),
-            Point3::new(0.0, 0.0, 0.0),
-            Vector3::unit_y(),
-        );
-        let proj = cgmath::perspective(Deg(60.0f32), aspect_ratio, 0.1, 1000.0);
+        let locals_buffer = renderer.factory.create_constant_buffer(1);
 
         let data = pipe::Data {
-            vbuf: vertex_buffer,
-            locals: renderer.factory.create_constant_buffer(1),
-            model: model.into(),
-            view: view.into(),
-            proj: proj.into(),
+            vbuf: mesh.vbuf,
+            locals: locals_buffer,
             out: renderer.render_target.clone(),
         };
 
+        Self {
+            pso,
+            data,
+            slice: mesh.slice,
+            transform: mesh.transform,
+        }
+    }
+
+    pub fn update_locals(
+        &mut self,
+        renderer: &mut Renderer,
+        view: &Matrix4<f32>,
+        proj: &Matrix4<f32>,
+    ) {
         let locals = Locals {
-            model: model.into(),
-            view: view.into(),
-            proj: proj.into(),
+            model: self.transform.into(),
+            view: (*view).into(),
+            proj: (*proj).into(),
         };
 
         renderer
             .encoder
-            .update_buffer(&data.locals, &[locals], 0)
+            .update_buffer(&self.data.locals, &[locals], 0)
             .unwrap();
+    }
+}
 
-        Self { slice, data }
+// /// Raw buffer with its attributes
+// #[derive(Clone, Debug)]
+// pub struct VertexBuffer {
+//     locals: Locals,
+//     vbuf: gfx::handle::Buffer<Resources, Vertex>,
+//     slice: gfx::Slice<Resources>,
+// }
+
+#[derive(Clone, Debug)]
+struct Mesh {
+    // slice: gfx::Slice<Resources>,
+    // data: pipe::Data<Resources>,
+    vbuf: gfx::handle::Buffer<Resources, Vertex>,
+    slice: gfx::Slice<Resources>,
+    transform: Matrix4<f32>,
+    // locals: Locals,
+}
+
+impl Mesh {
+    pub fn new(
+        renderer: &mut Renderer,
+        vertices: &[Vertex],
+        indices: &[u16],
+        transform: Matrix4<f32>,
+    ) -> Self {
+        let (vbuf, slice) = renderer
+            .factory
+            .create_vertex_buffer_with_slice(vertices, indices);
+
+        Self {
+            vbuf,
+            slice,
+            transform,
+        }
     }
 }
 
 pub fn main() {
     let mut events_loop = glutin::EventsLoop::new();
     let mut renderer = Renderer::new(&mut events_loop);
-    let material = Material::new(&mut renderer);
-    let mesh = Mesh::new(&mut renderer);
+
+    const CUBE_COLOR: [f32; 3] = [1.0, 0.2, 0.3];
+
+    let vertices: Vec<Vertex> = vec![
+        // Top (0, 0, 1)
+        Vertex::new([-1, -1, 1], CUBE_COLOR),
+        Vertex::new([1, -1, 1], CUBE_COLOR),
+        Vertex::new([1, 1, 1], CUBE_COLOR),
+        Vertex::new([-1, 1, 1], CUBE_COLOR),
+        // Bottom (0, 0, -1)
+        Vertex::new([-1, 1, -1], CUBE_COLOR),
+        Vertex::new([1, 1, -1], CUBE_COLOR),
+        Vertex::new([1, -1, -1], CUBE_COLOR),
+        Vertex::new([-1, -1, -1], CUBE_COLOR),
+        // Right (1, 0, 0)
+        Vertex::new([1, -1, -1], CUBE_COLOR),
+        Vertex::new([1, 1, -1], CUBE_COLOR),
+        Vertex::new([1, 1, 1], CUBE_COLOR),
+        Vertex::new([1, -1, 1], CUBE_COLOR),
+        // Left (-1, 0, 0)
+        Vertex::new([-1, -1, 1], CUBE_COLOR),
+        Vertex::new([-1, 1, 1], CUBE_COLOR),
+        Vertex::new([-1, 1, -1], CUBE_COLOR),
+        Vertex::new([-1, -1, -1], CUBE_COLOR),
+        // Front (0, 1, 0)
+        Vertex::new([1, 1, -1], CUBE_COLOR),
+        Vertex::new([-1, 1, -1], CUBE_COLOR),
+        Vertex::new([-1, 1, 1], CUBE_COLOR),
+        Vertex::new([1, 1, 1], CUBE_COLOR),
+        // Back (0, -1, 0)
+        Vertex::new([1, -1, 1], CUBE_COLOR),
+        Vertex::new([-1, -1, 1], CUBE_COLOR),
+        Vertex::new([-1, -1, -1], CUBE_COLOR),
+        Vertex::new([1, -1, -1], CUBE_COLOR),
+    ];
+
+    let indices: Vec<u16> = vec![
+        0, 1, 2, 2, 3, 0, // Top
+        4, 5, 6, 6, 7, 4, // Bottom
+        8, 9, 10, 10, 11, 8, // Right
+        12, 13, 14, 14, 15, 12, // Left
+        16, 17, 18, 18, 19, 16, // Front
+        20, 21, 22, 22, 23, 20, // Back
+    ];
+
+    let model = Matrix4::identity();
+    let mesh = Mesh::new(&mut renderer, &vertices, &indices, model);
+    let mut pipe = Pipe::new(&mut renderer, mesh);
+
+    let logical_size = renderer.window.get_inner_size().unwrap();
+    let aspect_ratio = logical_size.width as f32 / logical_size.height as f32;
+
+    let view = Matrix4::look_at(
+        Point3::new(-5.0, 2.0, 1.0),
+        Point3::new(0.0, 0.0, 0.0),
+        Vector3::unit_y(),
+    );
+    let proj = cgmath::perspective(Deg(60.0f32), aspect_ratio, 0.1, 1000.0);
 
     let mut running = true;
     while running {
@@ -309,7 +317,7 @@ pub fn main() {
 
         // Draw a frame.
         renderer.clear();
-        renderer.draw(&mesh, &material);
+        renderer.draw(&view, &proj, &mut pipe);
         renderer.flush();
     }
 }
