@@ -10,7 +10,7 @@ extern crate gfx_device_gl;
 extern crate gfx_window_glutin;
 extern crate glutin;
 
-use cgmath::{Deg, Matrix4, Point3, SquareMatrix, Vector3, Vector4};
+use cgmath::{Deg, Matrix4, Point3, SquareMatrix, Vector3};
 use gfx::traits::FactoryExt;
 use gfx::Device;
 use gfx_device_gl::Factory;
@@ -171,32 +171,32 @@ impl Mesh {
         const CUBE_COLOR: [f32; 3] = [1.0, 0.2, 0.3];
 
         let vertex_data = [
-            // top (0, 0, 1)
+            // Top (0, 0, 1)
             Vertex::new([-1, -1, 1], CUBE_COLOR),
             Vertex::new([1, -1, 1], CUBE_COLOR),
             Vertex::new([1, 1, 1], CUBE_COLOR),
             Vertex::new([-1, 1, 1], CUBE_COLOR),
-            // bottom (0, 0, -1)
+            // Bottom (0, 0, -1)
             Vertex::new([-1, 1, -1], CUBE_COLOR),
             Vertex::new([1, 1, -1], CUBE_COLOR),
             Vertex::new([1, -1, -1], CUBE_COLOR),
             Vertex::new([-1, -1, -1], CUBE_COLOR),
-            // right (1, 0, 0)
+            // Right (1, 0, 0)
             Vertex::new([1, -1, -1], CUBE_COLOR),
             Vertex::new([1, 1, -1], CUBE_COLOR),
             Vertex::new([1, 1, 1], CUBE_COLOR),
             Vertex::new([1, -1, 1], CUBE_COLOR),
-            // left (-1, 0, 0)
+            // Left (-1, 0, 0)
             Vertex::new([-1, -1, 1], CUBE_COLOR),
             Vertex::new([-1, 1, 1], CUBE_COLOR),
             Vertex::new([-1, 1, -1], CUBE_COLOR),
             Vertex::new([-1, -1, -1], CUBE_COLOR),
-            // front (0, 1, 0)
+            // Front (0, 1, 0)
             Vertex::new([1, 1, -1], CUBE_COLOR),
             Vertex::new([-1, 1, -1], CUBE_COLOR),
             Vertex::new([-1, 1, 1], CUBE_COLOR),
             Vertex::new([1, 1, 1], CUBE_COLOR),
-            // back (0, -1, 0)
+            // Back (0, -1, 0)
             Vertex::new([1, -1, 1], CUBE_COLOR),
             Vertex::new([-1, -1, 1], CUBE_COLOR),
             Vertex::new([-1, -1, -1], CUBE_COLOR),
@@ -204,12 +204,12 @@ impl Mesh {
         ];
 
         let index_data: &[u16] = &[
-            0, 1, 2, 2, 3, 0, // top
-            4, 5, 6, 6, 7, 4, // bottom
-            8, 9, 10, 10, 11, 8, // right
-            12, 13, 14, 14, 15, 12, // left
-            16, 17, 18, 18, 19, 16, // front
-            20, 21, 22, 22, 23, 20, // back
+            0, 1, 2, 2, 3, 0, // Top
+            4, 5, 6, 6, 7, 4, // Bottom
+            8, 9, 10, 10, 11, 8, // Right
+            12, 13, 14, 14, 15, 12, // Left
+            16, 17, 18, 18, 19, 16, // Front
+            20, 21, 22, 22, 23, 20, // Back
         ];
 
         let (vertex_buffer, slice) = renderer
@@ -226,22 +226,6 @@ impl Mesh {
             Vector3::unit_y(),
         );
         let proj = cgmath::perspective(Deg(60.0f32), aspect_ratio, 0.1, 1000.0);
-        let mvp = proj * view * model;
-
-        println!(
-            "mvp * Vector4: {:#?}",
-            mvp * Vector4::<f32>::new(-0.5, -0.5, 0.0, 1.0),
-        );
-
-        // let data = pipe::Data {
-        //     vbuf: vertex_buffer,
-        //     locals: renderer.factory.create_constant_buffer(1),
-        //     model: Matrix4::identity().into(),
-        //     view: view.into(),
-        //     proj: cgmath::perspective(Deg(60.0f32), aspect_ratio, 0.1, 1000.0).into(),
-        //     out_color: renderer.render_target.clone(),
-        //     out_depth: renderer.depth_stencil.clone(),
-        // };
 
         let data = pipe::Data {
             vbuf: vertex_buffer,
@@ -295,7 +279,7 @@ pub fn main() {
             }
         });
 
-        // draw a frame
+        // Draw a frame.
         renderer.clear();
         renderer.draw(&mesh, &material);
         renderer.flush();
