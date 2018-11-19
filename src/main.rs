@@ -161,6 +161,32 @@ impl Material {
     }
 }
 
+#[derive(Debug, Clone)]
+#[repr(C)]
+pub struct MeshData {
+    pub vertices: Vec<Vertex>,
+    pub indices: Vec<u16>,
+}
+
+impl MeshData {
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+
+impl Default for MeshData {
+    fn default() -> Self {
+        let vertices: Vec<Vertex> = Vec::new();
+        let indices: Vec<u16> = Vec::new();
+
+        Self {
+            vertices,
+            indices,
+        }
+    }
+}
+
+
 struct Mesh {
     slice: gfx::Slice<gfx_device_gl::Resources>,
     data: pipe::Data<gfx_device_gl::Resources>,
@@ -170,7 +196,9 @@ impl Mesh {
     pub fn new(renderer: &mut Renderer) -> Self {
         const CUBE_COLOR: [f32; 3] = [1.0, 0.2, 0.3];
 
-        let vertex_data = [
+        let mut mesh_data = MeshData::new();
+
+        mesh_data.vertices = vec![
             // Top (0, 0, 1)
             Vertex::new([-1, -1, 1], CUBE_COLOR),
             Vertex::new([1, -1, 1], CUBE_COLOR),
@@ -203,7 +231,7 @@ impl Mesh {
             Vertex::new([1, -1, -1], CUBE_COLOR),
         ];
 
-        let index_data: &[u16] = &[
+        mesh_data.indices = vec![
             0, 1, 2, 2, 3, 0, // Top
             4, 5, 6, 6, 7, 4, // Bottom
             8, 9, 10, 10, 11, 8, // Right
@@ -214,7 +242,7 @@ impl Mesh {
 
         let (vertex_buffer, slice) = renderer
             .factory
-            .create_vertex_buffer_with_slice(&vertex_data, index_data);
+            .create_vertex_buffer_with_slice(&mesh_data.vertices, &mesh_data.indices[..]);
 
         let logical_size = renderer.window.get_inner_size().unwrap();
         let aspect_ratio = logical_size.width as f32 / logical_size.height as f32;
