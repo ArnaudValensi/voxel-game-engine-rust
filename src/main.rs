@@ -17,14 +17,9 @@ use gfx_device_gl::Factory;
 use glutin::dpi::LogicalSize;
 use glutin::{Event, GlContext, GlWindow, KeyboardInput, VirtualKeyCode, WindowEvent};
 
-/// Graphics resource type.
 pub type Resources = gfx_device_gl::Resources;
-
 pub type ColorFormat = gfx::format::Rgba8;
 pub type DepthFormat = gfx::format::DepthStencil;
-
-/// Handle to a chunk of GPU memory. It represents a vertex buffer.
-// pub type VertexBufferHandle = gfx::handle::Buffer<Resources, Vertex>;
 
 gfx_defines!{
     vertex Vertex {
@@ -112,10 +107,11 @@ impl Renderer {
         self.encoder.clear(&self.render_target, CLEAR_COLOR);
     }
 
-    pub fn draw(&mut self, view: &Matrix4<f32>, proj: &Matrix4<f32>, pipe: &mut Pipe) {
-        pipe.update_locals(self, view, proj);
-        self.encoder.draw(&pipe.slice, &pipe.pso, &pipe.data);
+    pub fn draw(&mut self, mesh: &mut Mesh, view: &Matrix4<f32>, proj: &Matrix4<f32>, pipe: &Pipe) {
+        mesh.update_locals(self, view, proj);
+        self.encoder.draw(&mesh.slice, &pipe.pso, &mesh.data);
     }
+
     pub fn flush(&mut self) {
         self.encoder.flush(&mut self.device);
         self.window.swap_buffers().unwrap();
@@ -135,13 +131,10 @@ impl Renderer {
 
 struct Pipe {
     pso: gfx::PipelineState<Resources, pipe::Meta>,
-    data: pipe::Data<Resources>,
-    slice: gfx::Slice<Resources>,
-    transform: Matrix4<f32>,
 }
 
 impl Pipe {
-    pub fn new(renderer: &mut Renderer, mesh: Mesh) -> Self {
+    pub fn new(renderer: &mut Renderer) -> Self {
         let (vs_code, fs_code) = if cfg!(target_os = "emscripten") {
             (
                 include_bytes!("shader/triangle_300_es.glslv").to_vec(),
@@ -159,19 +152,40 @@ impl Pipe {
             .create_pipeline_simple(&vs_code, &fs_code, pipe::new())
             .unwrap();
 
+        Self { pso }
+    }
+}
+
+#[derive(Clone, Debug)]
+struct Mesh {
+    slice: gfx::Slice<Resources>,
+    data: pipe::Data<Resources>,
+    transform: Matrix4<f32>,
+}
+
+impl Mesh {
+    pub fn new(
+        renderer: &mut Renderer,
+        vertices: &[Vertex],
+        indices: &[u16],
+        transform: Matrix4<f32>,
+    ) -> Self {
+        let (vbuf, slice) = renderer
+            .factory
+            .create_vertex_buffer_with_slice(vertices, indices);
+
         let locals_buffer = renderer.factory.create_constant_buffer(1);
 
         let data = pipe::Data {
-            vbuf: mesh.vbuf,
+            vbuf,
             locals: locals_buffer,
             out: renderer.render_target.clone(),
         };
 
         Self {
-            pso,
             data,
-            slice: mesh.slice,
-            transform: mesh.transform,
+            slice,
+            transform,
         }
     }
 
@@ -191,43 +205,6 @@ impl Pipe {
             .encoder
             .update_buffer(&self.data.locals, &[locals], 0)
             .unwrap();
-    }
-}
-
-// /// Raw buffer with its attributes
-// #[derive(Clone, Debug)]
-// pub struct VertexBuffer {
-//     locals: Locals,
-//     vbuf: gfx::handle::Buffer<Resources, Vertex>,
-//     slice: gfx::Slice<Resources>,
-// }
-
-#[derive(Clone, Debug)]
-struct Mesh {
-    // slice: gfx::Slice<Resources>,
-    // data: pipe::Data<Resources>,
-    vbuf: gfx::handle::Buffer<Resources, Vertex>,
-    slice: gfx::Slice<Resources>,
-    transform: Matrix4<f32>,
-    // locals: Locals,
-}
-
-impl Mesh {
-    pub fn new(
-        renderer: &mut Renderer,
-        vertices: &[Vertex],
-        indices: &[u16],
-        transform: Matrix4<f32>,
-    ) -> Self {
-        let (vbuf, slice) = renderer
-            .factory
-            .create_vertex_buffer_with_slice(vertices, indices);
-
-        Self {
-            vbuf,
-            slice,
-            transform,
-        }
     }
 }
 
@@ -280,8 +257,8 @@ pub fn main() {
     ];
 
     let model = Matrix4::identity();
-    let mesh = Mesh::new(&mut renderer, &vertices, &indices, model);
-    let mut pipe = Pipe::new(&mut renderer, mesh);
+    let mut mesh = Mesh::new(&mut renderer, &vertices, &indices, model);
+    let pipe = Pipe::new(&mut renderer);
 
     let logical_size = renderer.window.get_inner_size().unwrap();
     let aspect_ratio = logical_size.width as f32 / logical_size.height as f32;
@@ -317,7 +294,8 @@ pub fn main() {
 
         // Draw a frame.
         renderer.clear();
-        renderer.draw(&view, &proj, &mut pipe);
+        // TODO: Replace view and proj by a Camera struct.
+        renderer.draw(&mut mesh, &view, &proj, &pipe);
         renderer.flush();
     }
 }
