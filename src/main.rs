@@ -240,40 +240,38 @@ impl Camera {
     }
 }
 
-fn cube_mesh_builder(renderer: &mut Renderer, position: Vector3<f32>) -> Mesh {
-    const CUBE_COLOR: [f32; 3] = [1.0, 0.2, 0.3];
-
+fn cube_mesh_builder(renderer: &mut Renderer, position: Vector3<f32>, color: [f32; 3]) -> Mesh {
     let vertices: Vec<Vertex> = vec![
         // Top (0, 0, 1)
-        Vertex::new([-1, -1, 1], CUBE_COLOR),
-        Vertex::new([1, -1, 1], CUBE_COLOR),
-        Vertex::new([1, 1, 1], CUBE_COLOR),
-        Vertex::new([-1, 1, 1], CUBE_COLOR),
+        Vertex::new([-1, -1, 1], color),
+        Vertex::new([1, -1, 1], color),
+        Vertex::new([1, 1, 1], color),
+        Vertex::new([-1, 1, 1], color),
         // Bottom (0, 0, -1)
-        Vertex::new([-1, 1, -1], CUBE_COLOR),
-        Vertex::new([1, 1, -1], CUBE_COLOR),
-        Vertex::new([1, -1, -1], CUBE_COLOR),
-        Vertex::new([-1, -1, -1], CUBE_COLOR),
+        Vertex::new([-1, 1, -1], color),
+        Vertex::new([1, 1, -1], color),
+        Vertex::new([1, -1, -1], color),
+        Vertex::new([-1, -1, -1], color),
         // Right (1, 0, 0)
-        Vertex::new([1, -1, -1], CUBE_COLOR),
-        Vertex::new([1, 1, -1], CUBE_COLOR),
-        Vertex::new([1, 1, 1], CUBE_COLOR),
-        Vertex::new([1, -1, 1], CUBE_COLOR),
+        Vertex::new([1, -1, -1], color),
+        Vertex::new([1, 1, -1], color),
+        Vertex::new([1, 1, 1], color),
+        Vertex::new([1, -1, 1], color),
         // Left (-1, 0, 0)
-        Vertex::new([-1, -1, 1], CUBE_COLOR),
-        Vertex::new([-1, 1, 1], CUBE_COLOR),
-        Vertex::new([-1, 1, -1], CUBE_COLOR),
-        Vertex::new([-1, -1, -1], CUBE_COLOR),
+        Vertex::new([-1, -1, 1], color),
+        Vertex::new([-1, 1, 1], color),
+        Vertex::new([-1, 1, -1], color),
+        Vertex::new([-1, -1, -1], color),
         // Front (0, 1, 0)
-        Vertex::new([1, 1, -1], CUBE_COLOR),
-        Vertex::new([-1, 1, -1], CUBE_COLOR),
-        Vertex::new([-1, 1, 1], CUBE_COLOR),
-        Vertex::new([1, 1, 1], CUBE_COLOR),
+        Vertex::new([1, 1, -1], color),
+        Vertex::new([-1, 1, -1], color),
+        Vertex::new([-1, 1, 1], color),
+        Vertex::new([1, 1, 1], color),
         // Back (0, -1, 0)
-        Vertex::new([1, -1, 1], CUBE_COLOR),
-        Vertex::new([-1, -1, 1], CUBE_COLOR),
-        Vertex::new([-1, -1, -1], CUBE_COLOR),
-        Vertex::new([1, -1, -1], CUBE_COLOR),
+        Vertex::new([1, -1, 1], color),
+        Vertex::new([-1, -1, 1], color),
+        Vertex::new([-1, -1, -1], color),
+        Vertex::new([1, -1, -1], color),
     ];
 
     let indices: Vec<u16> = vec![
@@ -303,11 +301,12 @@ pub fn main() {
 
     let camera = Camera::new(
         &renderer,
-        Point3::new(-5.0, 2.0, 1.0),
-        (Point3::new(0.0, 0.0, 0.0) - Point3::new(-5.0, 2.0, 1.0)).normalize(),
+        Point3::new(0.0, 2.0, 5.0),
+        (Point3::new(0.0, 0.0, 0.0) - Point3::new(0.0, 2.0, 5.0)).normalize(),
     );
 
-    let mut mesh = cube_mesh_builder(&mut renderer, Vector3::new(0.0, 0.0, 0.0));
+    let mut mesh1 = cube_mesh_builder(&mut renderer, Vector3::new(0.0, 0.0, 0.0), [1.0, 0.2, 0.3]);
+    let mut mesh2 = cube_mesh_builder(&mut renderer, Vector3::new(0.0, 0.0, -5.0), [0.2, 1.0, 0.3]);
 
     let mut running = true;
     while running {
@@ -333,7 +332,8 @@ pub fn main() {
 
         // Draw a frame.
         renderer.clear();
-        renderer.draw(&mut mesh, &camera, &pipe);
+        renderer.draw(&mut mesh1, &camera, &pipe);
+        renderer.draw(&mut mesh2, &camera, &pipe);
         renderer.flush();
     }
 }
