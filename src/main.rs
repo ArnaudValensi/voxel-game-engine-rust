@@ -10,6 +10,7 @@ extern crate gfx_device_gl;
 extern crate gfx_window_glutin;
 extern crate glutin;
 
+use cgmath::prelude::*;
 use cgmath::{Deg, Matrix4, Point3, SquareMatrix, Vector3};
 use gfx::traits::FactoryExt;
 use gfx::Device;
@@ -107,8 +108,8 @@ impl Renderer {
         self.encoder.clear(&self.render_target, CLEAR_COLOR);
     }
 
-    pub fn draw(&mut self, mesh: &mut Mesh, view: &Matrix4<f32>, proj: &Matrix4<f32>, pipe: &Pipe) {
-        mesh.update_locals(self, view, proj);
+    pub fn draw(&mut self, mesh: &mut Mesh, camera: &Camera, pipe: &Pipe) {
+        mesh.update_locals(self, &camera.get_view(), camera.get_projection());
         self.encoder.draw(&mesh.slice, &pipe.pso, &mesh.data);
     }
 
@@ -208,6 +209,38 @@ impl Mesh {
     }
 }
 
+struct Camera {
+    position: Point3<f32>,
+    forward: Vector3<f32>,
+    projection: Matrix4<f32>,
+}
+
+impl Camera {
+    fn new(renderer: &Renderer, position: Point3<f32>, forward: Vector3<f32>) -> Self {
+        let logical_size = renderer.window.get_inner_size().unwrap();
+        let aspect_ratio = logical_size.width as f32 / logical_size.height as f32;
+        let projection = cgmath::perspective(Deg(60.0f32), aspect_ratio, 0.1, 1000.0);
+
+        Self {
+            position,
+            forward,
+            projection,
+        }
+    }
+
+    pub fn get_view(&self) -> Matrix4<f32> {
+        Matrix4::look_at(
+            self.position,
+            self.position + self.forward,
+            Vector3::unit_y(),
+        )
+    }
+
+    pub fn get_projection(&self) -> &Matrix4<f32> {
+        &self.projection
+    }
+}
+
 pub fn main() {
     let mut events_loop = glutin::EventsLoop::new();
     let mut renderer = Renderer::new(&mut events_loop);
@@ -260,15 +293,11 @@ pub fn main() {
     let mut mesh = Mesh::new(&mut renderer, &vertices, &indices, model);
     let pipe = Pipe::new(&mut renderer);
 
-    let logical_size = renderer.window.get_inner_size().unwrap();
-    let aspect_ratio = logical_size.width as f32 / logical_size.height as f32;
-
-    let view = Matrix4::look_at(
+    let camera = Camera::new(
+        &renderer,
         Point3::new(-5.0, 2.0, 1.0),
-        Point3::new(0.0, 0.0, 0.0),
-        Vector3::unit_y(),
+        (Point3::new(0.0, 0.0, 0.0) - Point3::new(-5.0, 2.0, 1.0)).normalize(),
     );
-    let proj = cgmath::perspective(Deg(60.0f32), aspect_ratio, 0.1, 1000.0);
 
     let mut running = true;
     while running {
@@ -294,8 +323,7 @@ pub fn main() {
 
         // Draw a frame.
         renderer.clear();
-        // TODO: Replace view and proj by a Camera struct.
-        renderer.draw(&mut mesh, &view, &proj, &pipe);
+        renderer.draw(&mut mesh, &camera, &pipe);
         renderer.flush();
     }
 }
