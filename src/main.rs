@@ -1,6 +1,5 @@
 // TODO:
 //   - Use a dynamic number of vertices
-//   - Display a mesh based on a world position
 //   - Display multiple meshes
 #![cfg_attr(target_os = "emscripten", allow(unused_mut))]
 
