@@ -37,6 +37,8 @@ gfx_defines!{
         vbuf: gfx::VertexBuffer<Vertex> = (),
         locals: gfx::ConstantBuffer<Locals> = "Locals",
         out: gfx::RenderTarget<ColorFormat> = "Target0",
+        out_depth: gfx::DepthTarget<gfx::format::DepthStencil> =
+            gfx::preset::depth::LESS_EQUAL_WRITE,
     }
 }
 
@@ -105,6 +107,8 @@ impl Renderer {
 
     pub fn clear(&mut self) {
         self.encoder.clear(&self.render_target, CLEAR_COLOR);
+        self.encoder.clear_depth(&self.depth_stencil, 1.0);
+        self.encoder.clear_stencil(&self.depth_stencil, 0);
     }
 
     pub fn draw(&mut self, mesh: &mut Mesh, camera: &Camera, pipe: &Pipe) {
@@ -180,6 +184,7 @@ impl Mesh {
             vbuf,
             locals: locals_buffer,
             out: renderer.render_target.clone(),
+            out_depth: renderer.depth_stencil.clone(),
         };
 
         Self {
