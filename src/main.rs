@@ -10,7 +10,7 @@ extern crate gfx_window_glutin;
 extern crate glutin;
 
 use cgmath::prelude::*;
-use cgmath::{Deg, Matrix4, Point3, SquareMatrix, Vector3};
+use cgmath::{Deg, Matrix4, Point3, Quaternion, Vector3};
 use gfx::traits::FactoryExt;
 use gfx::Device;
 use gfx_device_gl::Factory;
@@ -240,10 +240,7 @@ impl Camera {
     }
 }
 
-pub fn main() {
-    let mut events_loop = glutin::EventsLoop::new();
-    let mut renderer = Renderer::new(&mut events_loop);
-
+fn cube_mesh_builder(renderer: &mut Renderer, position: Vector3<f32>) -> Mesh {
     const CUBE_COLOR: [f32; 3] = [1.0, 0.2, 0.3];
 
     let vertices: Vec<Vertex> = vec![
@@ -288,8 +285,20 @@ pub fn main() {
         20, 21, 22, 22, 23, 20, // Back
     ];
 
-    let model = Matrix4::identity();
-    let mut mesh = Mesh::new(&mut renderer, &vertices, &indices, model);
+    let up = Vector3::unit_y();
+    let forward = Vector3::unit_z();
+    let rotation = Quaternion::look_at(forward, up);
+    let rotation_matrix = Matrix4::from(rotation);
+    let translation = Matrix4::from_translation(position);
+    let model: Matrix4<f32> = translation * rotation_matrix;
+
+    Mesh::new(renderer, &vertices, &indices, model)
+}
+
+pub fn main() {
+    let mut events_loop = glutin::EventsLoop::new();
+    let mut renderer = Renderer::new(&mut events_loop);
+
     let pipe = Pipe::new(&mut renderer);
 
     let camera = Camera::new(
@@ -297,6 +306,8 @@ pub fn main() {
         Point3::new(-5.0, 2.0, 1.0),
         (Point3::new(0.0, 0.0, 0.0) - Point3::new(-5.0, 2.0, 1.0)).normalize(),
     );
+
+    let mut mesh = cube_mesh_builder(&mut renderer, Vector3::new(0.0, 0.0, 0.0));
 
     let mut running = true;
     while running {
