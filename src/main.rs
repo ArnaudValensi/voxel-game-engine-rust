@@ -315,6 +315,7 @@ pub fn main() {
 
     let mut running = true;
     while running {
+        // TODO: Can we improve the event loop? Maybe see ggez.
         events_loop.poll_events(|event| {
             if let Event::WindowEvent { event, .. } = event {
                 match event {
