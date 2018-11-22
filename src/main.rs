@@ -7,14 +7,16 @@ extern crate gfx;
 extern crate gfx_device_gl;
 extern crate gfx_window_glutin;
 extern crate glutin;
+extern crate terrain_generation;
 
 use cgmath::prelude::*;
-use cgmath::{Deg, Matrix4, Point3, Quaternion, Vector3};
+use cgmath::{Deg, Matrix4, Point3, Vector3};
 use gfx::traits::FactoryExt;
 use gfx::Device;
 use gfx_device_gl::Factory;
 use glutin::dpi::LogicalSize;
 use glutin::{Event, GlContext, GlWindow, KeyboardInput, VirtualKeyCode, WindowEvent};
+use terrain_generation::Transform;
 
 pub type Resources = gfx_device_gl::Resources;
 pub type ColorFormat = gfx::format::Rgba8;
@@ -241,44 +243,6 @@ impl Camera {
 
     pub fn get_projection(&self) -> &Matrix4<f32> {
         &self.projection
-    }
-}
-
-struct Transform {
-    position: Vector3<f32>,
-    rotation: Quaternion<f32>,
-    transform: Matrix4<f32>,
-}
-
-impl Transform {
-    pub fn new(position: Vector3<f32>, up: Vector3<f32>, forward: Vector3<f32>) -> Self {
-        let rotation = Quaternion::look_at(forward, up);
-        let mut new_transform = Self {
-            position,
-            rotation,
-            transform: Matrix4::identity(),
-        };
-
-        new_transform.update_transform();
-        new_transform
-    }
-
-    pub fn get_transform(&self) -> Matrix4<f32> {
-        self.transform
-    }
-
-    pub fn set_forward(&mut self, new_forward: Vector3<f32>) {
-        let up = Vector3::unit_y();
-
-        self.rotation = Quaternion::look_at(new_forward, up);
-        self.update_transform();
-    }
-
-    fn update_transform(&mut self) {
-        let rotation_matrix = Matrix4::from(self.rotation);
-        let translation = Matrix4::from_translation(self.position);
-
-        self.transform = translation * rotation_matrix;
     }
 }
 
