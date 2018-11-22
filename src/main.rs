@@ -1,6 +1,5 @@
 // TODO:
 //   - Use a dynamic number of vertices
-//   - Display multiple meshes
 #![cfg_attr(target_os = "emscripten", allow(unused_mut))]
 
 #[macro_use]
@@ -245,6 +244,44 @@ impl Camera {
     }
 }
 
+struct Transform {
+    position: Vector3<f32>,
+    rotation: Quaternion<f32>,
+    transform: Matrix4<f32>,
+}
+
+impl Transform {
+    pub fn new(position: Vector3<f32>, up: Vector3<f32>, forward: Vector3<f32>) -> Self {
+        let rotation = Quaternion::look_at(forward, up);
+        let mut new_transform = Self {
+            position,
+            rotation,
+            transform: Matrix4::identity(),
+        };
+
+        new_transform.update_transform();
+        new_transform
+    }
+
+    pub fn get_transform(&self) -> Matrix4<f32> {
+        self.transform
+    }
+
+    pub fn set_forward(&mut self, new_forward: Vector3<f32>) {
+        let up = Vector3::unit_y();
+
+        self.rotation = Quaternion::look_at(new_forward, up);
+        self.update_transform();
+    }
+
+    fn update_transform(&mut self) {
+        let rotation_matrix = Matrix4::from(self.rotation);
+        let translation = Matrix4::from_translation(self.position);
+
+        self.transform = translation * rotation_matrix;
+    }
+}
+
 fn cube_mesh_builder(renderer: &mut Renderer, position: Vector3<f32>, color: [f32; 3]) -> Mesh {
     let vertices: Vec<Vertex> = vec![
         // Top (0, 0, 1)
@@ -290,10 +327,7 @@ fn cube_mesh_builder(renderer: &mut Renderer, position: Vector3<f32>, color: [f3
 
     let up = Vector3::unit_y();
     let forward = Vector3::unit_z();
-    let rotation = Quaternion::look_at(forward, up);
-    let rotation_matrix = Matrix4::from(rotation);
-    let translation = Matrix4::from_translation(position);
-    let model: Matrix4<f32> = translation * rotation_matrix;
+    let model = Transform::new(position, up, forward).get_transform();
 
     Mesh::new(renderer, &vertices, &indices, model)
 }
