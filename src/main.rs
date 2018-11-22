@@ -16,7 +16,7 @@ use gfx::Device;
 use gfx_device_gl::Factory;
 use glutin::dpi::LogicalSize;
 use glutin::{Event, GlContext, GlWindow, KeyboardInput, VirtualKeyCode, WindowEvent};
-use terrain_generation::Transform;
+use terrain_generation::{Input, Lifecycle, LifecycleEvent, Transform};
 
 pub type Resources = gfx_device_gl::Resources;
 pub type ColorFormat = gfx::format::Rgba8;
@@ -85,7 +85,7 @@ impl Renderer {
             gfx_window_glutin::init::<ColorFormat, DepthFormat>(
                 window_config,
                 context,
-                &events_loop,
+                events_loop,
             );
         let encoder = gfx::Encoder::from(factory.create_command_buffer());
 
@@ -95,6 +95,7 @@ impl Renderer {
         let logical_size = window.get_outer_size().expect("Window no longer exists");
         let physical_size = logical_size.to_physical(window.get_hidpi_factor());
         window.resize(physical_size);
+        // gfx_window_glutin::update_views(&window, &mut render_target, &mut depth_stencil);
 
         Self {
             window,
@@ -297,7 +298,9 @@ fn cube_mesh_builder(renderer: &mut Renderer, position: Vector3<f32>, color: [f3
 }
 
 pub fn main() {
+    let mut input = Input::new();
     let mut events_loop = glutin::EventsLoop::new();
+    let mut lifecycle = Lifecycle::new();
     let mut renderer = Renderer::new(&mut events_loop);
 
     let pipe = Pipe::new(&mut renderer);
@@ -311,33 +314,40 @@ pub fn main() {
     let mut mesh1 = cube_mesh_builder(&mut renderer, Vector3::new(0.0, 0.0, 0.0), [1.0, 0.2, 0.3]);
     let mut mesh2 = cube_mesh_builder(&mut renderer, Vector3::new(0.0, 0.0, -5.0), [0.2, 1.0, 0.3]);
 
-    let mut running = true;
-    while running {
-        // TODO: Can we improve the event loop? Maybe see ggez.
-        events_loop.poll_events(|event| {
-            if let Event::WindowEvent { event, .. } = event {
-                match event {
-                    WindowEvent::CloseRequested
-                    | WindowEvent::KeyboardInput {
-                        input:
-                            KeyboardInput {
-                                virtual_keycode: Some(VirtualKeyCode::Escape),
+    let mut is_running = true;
+    while let Some(event) = lifecycle.next() {
+        match event {
+            LifecycleEvent::FixedUpdate(_fixed_delta_time) => {}
+            LifecycleEvent::Update(_delta_time) => {
+                events_loop.poll_events(|event| {
+                    if let Event::WindowEvent { event, .. } = event {
+                        match event {
+                            WindowEvent::CloseRequested
+                            | WindowEvent::KeyboardInput {
+                                input:
+                                    KeyboardInput {
+                                        virtual_keycode: Some(VirtualKeyCode::Escape),
+                                        ..
+                                    },
                                 ..
-                            },
-                        ..
-                    } => running = false,
-                    WindowEvent::Resized(size) => {
-                        renderer.resize(size);
+                            } => is_running = false,
+                            WindowEvent::Resized(size) => {
+                                renderer.resize(size);
+                            }
+                            _ => (),
+                        }
                     }
-                    _ => (),
+                });
+
+                renderer.clear();
+                renderer.draw(&mut mesh1, &camera, &pipe);
+                renderer.draw(&mut mesh2, &camera, &pipe);
+                renderer.flush();
+
+                if !is_running {
+                    return;
                 }
             }
-        });
-
-        // Draw a frame.
-        renderer.clear();
-        renderer.draw(&mut mesh1, &camera, &pipe);
-        renderer.draw(&mut mesh2, &camera, &pipe);
-        renderer.flush();
+        }
     }
 }
