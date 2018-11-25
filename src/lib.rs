@@ -25,6 +25,9 @@ pub use self::mesh::{Mesh, Pipe, Vertex};
 pub mod camera;
 pub use self::camera::Camera;
 
+pub mod cube_builder;
+pub use self::cube_builder::cube_mesh_builder;
+
 pub type Resources = gfx_device_gl::Resources;
 pub type ColorFormat = gfx::format::Rgba8;
 pub type DepthFormat = gfx::format::DepthStencil;
