@@ -67,7 +67,6 @@ fn cube_mesh_builder(renderer: &mut Renderer, position: Vector3<f32>, color: [f3
 pub fn main() {
     let mut input = Input::new();
     let mut events = Events::new();
-    // let mut events_loop = glutin::EventsLoop::new();
     let mut lifecycle = Lifecycle::new();
     let mut renderer = Renderer::new(&mut events);
 
@@ -86,7 +85,7 @@ pub fn main() {
         match event {
             LifecycleEvent::FixedUpdate(_fixed_delta_time) => {}
             LifecycleEvent::Update(_delta_time) => {
-                events.update(&mut renderer, &input);
+                events.update(&mut renderer, &mut input);
 
                 renderer.clear();
                 renderer.draw(&mut mesh1, &camera, &pipe);

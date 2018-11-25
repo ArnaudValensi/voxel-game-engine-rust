@@ -48,6 +48,7 @@ impl Default for Lifecycle {
     }
 }
 
+#[allow(clippy::should_implement_trait)]
 impl Lifecycle {
     pub fn new() -> Lifecycle {
         Default::default()
