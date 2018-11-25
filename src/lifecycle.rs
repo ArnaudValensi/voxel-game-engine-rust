@@ -59,7 +59,8 @@ impl Lifecycle {
                 State::Schedule => {
                     let current_time = Instant::now();
                     let next_update = self.last_update_time + self.update_frequency;
-                    let next_fixed_update = self.last_fixed_update_time + self.fixed_update_frequency;
+                    let next_fixed_update =
+                        self.last_fixed_update_time + self.fixed_update_frequency;
                     let next_event = cmp::min(next_update, next_fixed_update);
 
                     if next_event > current_time {
@@ -67,7 +68,8 @@ impl Lifecycle {
                         State::Schedule
                     } else if next_event == next_update {
                         State::Update
-                    } else { // next_event == next_fixed_update
+                    } else {
+                        // next_event == next_fixed_update
                         State::FixedUpdate
                     }
                 }

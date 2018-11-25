@@ -74,7 +74,7 @@ impl Input {
         if self.cursor_locked {
             self.mouse_axis = (
                 mouse_position.0 - screen_center.0,
-                mouse_position.1 - screen_center.1
+                mouse_position.1 - screen_center.1,
             );
         }
     }
