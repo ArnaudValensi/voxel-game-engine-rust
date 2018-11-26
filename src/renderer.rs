@@ -1,4 +1,4 @@
-use super::{Camera, ColorFormat, DepthFormat, Events, Mesh, Resources, Pipe};
+use super::{ColorFormat, DepthFormat, Events, Mesh, Pipeline, Resources};
 use gfx::Device;
 use gfx_device_gl::Factory;
 use glutin::dpi::LogicalSize;
@@ -66,9 +66,12 @@ impl Renderer {
         self.encoder.clear_stencil(&self.depth_stencil, 0);
     }
 
-    pub fn draw(&mut self, mesh: &mut Mesh, camera: &Camera, pipe: &Pipe) {
-        mesh.update_locals(self, &camera.get_view(), camera.get_projection());
-        self.encoder.draw(&mesh.slice, &pipe.pso, &mesh.data);
+    pub fn draw<PD: gfx::pso::PipelineData<Resources>, P: Pipeline<PD>>(
+        &mut self,
+        mesh: &mut Mesh<PD>,
+        pipe: &P,
+    ) {
+        self.encoder.draw::<PD>(&mesh.get_slice(), &pipe.get_pso(), &mesh.get_data());
     }
 
     pub fn flush(&mut self) {

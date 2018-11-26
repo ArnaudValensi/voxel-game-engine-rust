@@ -1,7 +1,7 @@
-use super::{Mesh, Renderer, Transform, Vertex};
+use super::{VoxelMesh, Renderer, Transform, Vertex};
 use cgmath::Vector3;
 
-pub fn cube_mesh_builder(renderer: &mut Renderer, position: Vector3<f32>, color: [f32; 3]) -> Mesh {
+pub fn cube_mesh_builder(renderer: &mut Renderer, position: Vector3<f32>, color: [f32; 3]) -> VoxelMesh {
     let vertices: Vec<Vertex> = vec![
         // Top (0, 0, 1)
         Vertex::new([-1, -1, 1], color),
@@ -48,5 +48,5 @@ pub fn cube_mesh_builder(renderer: &mut Renderer, position: Vector3<f32>, color:
     let forward = Vector3::unit_z();
     let model = Transform::new(position, up, forward).get_transform();
 
-    Mesh::new(renderer, &vertices, &indices, model)
+    VoxelMesh::new(renderer, &vertices, &indices, model)
 }
