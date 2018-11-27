@@ -31,11 +31,12 @@ pub use self::camera::Camera;
 pub mod cube_builder;
 pub use self::cube_builder::cube_mesh_builder;
 
-// pub mod gui;
-
 pub type Resources = gfx_device_gl::Resources;
 pub type ColorFormat = gfx::format::Rgba8;
 pub type DepthFormat = gfx::format::DepthStencil;
 
 pub mod voxel_mesh;
 pub use self::voxel_mesh::{Vertex, VoxelMesh, VoxelMeshPipe};
+
+pub mod gui;
+pub use self::gui::{UIMesh, UIMeshPipe};

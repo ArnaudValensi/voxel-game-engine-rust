@@ -60,7 +60,6 @@ impl VoxelMeshPipe {
     }
 }
 
-// TODO: Return ref.
 impl Pipeline<pipe::Data<Resources>> for VoxelMeshPipe {
     fn get_pso(&self) -> &gfx::PipelineState<Resources, pipe::Meta> {
         &self.pso

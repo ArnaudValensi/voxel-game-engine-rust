@@ -9,21 +9,9 @@ extern crate terrain_generation;
 use cgmath::prelude::*;
 use cgmath::{Point3, Vector3};
 use terrain_generation::{
-    cube_mesh_builder, Camera, Events, Input, Lifecycle, LifecycleEvent, VoxelMeshPipe,
-    Renderer,
+    cube_mesh_builder, Camera, Events, Input, Lifecycle, LifecycleEvent, Renderer, UIMesh,
+    UIMeshPipe, VoxelMeshPipe,
 };
-
-// gfx_defines! {
-//     vertex Vertex {
-//         pos: [f32; 2] = "a_Pos",
-//         color: [f32; 3] = "a_Color",
-//     }
-
-//     pipeline pipe {
-//         vbuf: gfx::VertexBuffer<Vertex> = (),
-//         out: gfx::RenderTarget<ColorFormat> = "Target0",
-//     }
-// }
 
 pub fn main() {
     let mut input = Input::new();
@@ -32,6 +20,7 @@ pub fn main() {
     let mut renderer = Renderer::new(&mut events);
 
     let pipe = VoxelMeshPipe::new(&mut renderer);
+    let ui_pipe = UIMeshPipe::new(&mut renderer);
 
     let camera = Camera::new(
         &renderer,
@@ -41,6 +30,8 @@ pub fn main() {
 
     let mut mesh1 = cube_mesh_builder(&mut renderer, Vector3::new(0.0, 0.0, 0.0), [1.0, 0.2, 0.3]);
     let mut mesh2 = cube_mesh_builder(&mut renderer, Vector3::new(0.0, 0.0, -5.0), [0.2, 1.0, 0.3]);
+
+    let mut ui_mesh1 = UIMesh::new(&mut renderer);
 
     while let Some(event) = lifecycle.next() {
         match event {
@@ -54,6 +45,7 @@ pub fn main() {
                 renderer.clear();
                 renderer.draw(&mut mesh1, &pipe);
                 renderer.draw(&mut mesh2, &pipe);
+                renderer.draw(&mut ui_mesh1, &ui_pipe);
                 renderer.flush();
 
                 if !events.is_running() {
