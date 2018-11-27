@@ -13,11 +13,36 @@ use terrain_generation::{
     UIMeshPipe, VoxelMeshPipe,
 };
 
+struct Element {
+    rect: Rect,
+}
+
+struct Gui {}
+
+impl Gui {
+    pub fn render(mut renderer: &mut Renderer, pipe: &UIMeshPipe, element: &Element) {
+        let mut mesh = UIMesh::new(&mut renderer, &element.rect);
+
+        renderer.draw(&mut mesh, pipe);
+    }
+
+    fn create_element(position: (f32, f32), size: (f32, f32)) -> Element {
+        let rect = Rect::new(position, size);
+
+        Element { rect }
+    }
+}
+
+fn hello() -> Element {
+    Gui::create_element((20.0, 20.0), (200.0, 100.0))
+}
+
 pub fn main() {
     let mut input = Input::new();
     let mut events = Events::new();
     let mut lifecycle = Lifecycle::new();
     let mut renderer = Renderer::new(&mut events);
+    // let gui = Gui::new(&renderer);
 
     let pipe = VoxelMeshPipe::new(&mut renderer);
     let ui_pipe = UIMeshPipe::new(&mut renderer);
@@ -31,8 +56,10 @@ pub fn main() {
     let mut mesh1 = cube_mesh_builder(&mut renderer, Vector3::new(0.0, 0.0, 0.0), [1.0, 0.2, 0.3]);
     let mut mesh2 = cube_mesh_builder(&mut renderer, Vector3::new(0.0, 0.0, -5.0), [0.2, 1.0, 0.3]);
 
-    let rect = Rect::new((0.0, 0.0), (200.0, 100.0));
-    let mut ui_mesh1 = UIMesh::new(&mut renderer, &rect);
+    // let rect = Rect::new((0.0, 0.0), (200.0, 100.0));
+    // let mut ui_mesh1 = UIMesh::new(&mut renderer, &rect);
+
+    let hello = hello();
 
     while let Some(event) = lifecycle.next() {
         match event {
@@ -46,7 +73,8 @@ pub fn main() {
                 renderer.clear();
                 renderer.draw(&mut mesh1, &pipe);
                 renderer.draw(&mut mesh2, &pipe);
-                renderer.draw(&mut ui_mesh1, &ui_pipe);
+                // renderer.draw(&mut ui_mesh1, &ui_pipe);
+                Gui::render(&mut renderer, &ui_pipe, &hello);
                 renderer.flush();
 
                 if !events.is_running() {
