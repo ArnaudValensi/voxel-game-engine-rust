@@ -9,7 +9,7 @@ extern crate terrain_generation;
 use cgmath::prelude::*;
 use cgmath::{Point3, Vector3};
 use terrain_generation::{
-    cube_mesh_builder, Camera, Events, Input, Lifecycle, LifecycleEvent, Renderer, UIMesh,
+    cube_mesh_builder, Camera, Events, Input, Lifecycle, LifecycleEvent, Rect, Renderer, UIMesh,
     UIMeshPipe, VoxelMeshPipe,
 };
 
@@ -31,7 +31,8 @@ pub fn main() {
     let mut mesh1 = cube_mesh_builder(&mut renderer, Vector3::new(0.0, 0.0, 0.0), [1.0, 0.2, 0.3]);
     let mut mesh2 = cube_mesh_builder(&mut renderer, Vector3::new(0.0, 0.0, -5.0), [0.2, 1.0, 0.3]);
 
-    let mut ui_mesh1 = UIMesh::new(&mut renderer);
+    let rect = Rect::new((0.0, 0.0), (200.0, 100.0));
+    let mut ui_mesh1 = UIMesh::new(&mut renderer, &rect);
 
     while let Some(event) = lifecycle.next() {
         match event {

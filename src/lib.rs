@@ -39,4 +39,4 @@ pub mod voxel_mesh;
 pub use self::voxel_mesh::{Vertex, VoxelMesh, VoxelMeshPipe};
 
 pub mod gui;
-pub use self::gui::{UIMesh, UIMeshPipe};
+pub use self::gui::{UIMesh, UIMeshPipe, Rect};

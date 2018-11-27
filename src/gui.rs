@@ -1,6 +1,7 @@
 use super::gfx;
 use super::{ColorFormat, Mesh, Pipeline, Renderer, Resources};
 use gfx::traits::FactoryExt;
+use glutin::dpi::LogicalSize;
 
 gfx_defines! {
     vertex Vertex {
@@ -44,34 +45,47 @@ pub struct UIMesh {
     pub data: pipe::Data<Resources>,
 }
 
+#[inline]
+fn pixel_to_homogeneous_coordinate(coordinate: (f32, f32), screen_size: LogicalSize) -> (f32, f32) {
+    (
+        coordinate.0 * 2.0 / screen_size.width as f32 - 1.0,
+        2.0 - coordinate.1 * 2.0 / screen_size.height as f32 - 1.0,
+    )
+}
+
 impl UIMesh {
-    pub fn new(renderer: &mut Renderer) -> Self {
+    pub fn new(renderer: &mut Renderer, rect: &Rect) -> Self {
+        let screen_size = renderer.window.get_outer_size().unwrap();
+
         const WHITE: [f32; 3] = [1.0, 1.0, 1.0];
 
-        const SQUARE: &[Vertex] = &[
-            Vertex {
-                pos: [0.5, -0.5],
-                color: WHITE,
-            },
-            Vertex {
-                pos: [-0.5, -0.5],
-                color: WHITE,
-            },
-            Vertex {
-                pos: [-0.5, 0.5],
-                color: WHITE,
-            },
-            Vertex {
-                pos: [0.5, 0.5],
-                color: WHITE,
-            },
-        ];
+        let homogeneous_position = pixel_to_homogeneous_coordinate(rect.position, screen_size);
+        let homogeneous_size = pixel_to_homogeneous_coordinate(rect.size, screen_size);
+
+        let top_left = Vertex {
+            pos: [homogeneous_position.0, homogeneous_position.1],
+            color: WHITE,
+        };
+        let top_right = Vertex {
+            pos: [homogeneous_size.0, homogeneous_position.1],
+            color: WHITE,
+        };
+        let bottom_right = Vertex {
+            pos: [homogeneous_size.0, homogeneous_size.1],
+            color: WHITE,
+        };
+        let bottom_left = Vertex {
+            pos: [homogeneous_position.0, homogeneous_size.1],
+            color: WHITE,
+        };
+
+        let suqare: &[Vertex] = &[top_left, top_right, bottom_right, bottom_left];
 
         const INDICES: &[u16] = &[0, 1, 2, 2, 3, 0];
 
         let (vbuf, slice) = renderer
             .factory
-            .create_vertex_buffer_with_slice(SQUARE, INDICES);
+            .create_vertex_buffer_with_slice(suqare, INDICES);
 
         let data = pipe::Data {
             vbuf,
@@ -89,5 +103,16 @@ impl Mesh<pipe::Data<Resources>> for UIMesh {
 
     fn get_slice(&self) -> &gfx::Slice<Resources> {
         &self.slice
+    }
+}
+
+pub struct Rect {
+    pub position: (f32, f32),
+    pub size: (f32, f32),
+}
+
+impl Rect {
+    pub fn new(position: (f32, f32), size: (f32, f32)) -> Self {
+        Self { position, size }
     }
 }
