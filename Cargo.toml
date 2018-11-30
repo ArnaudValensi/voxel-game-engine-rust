@@ -10,3 +10,4 @@ gfx_window_glutin = "0.26.0"
 gfx_device_gl = "*"
 glutin = "0.18.0"
 cgmath = "0.16"
+yoga = { path = "./yoga" }

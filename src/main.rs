@@ -5,6 +5,8 @@ extern crate gfx_device_gl;
 extern crate gfx_window_glutin;
 extern crate glutin;
 extern crate terrain_generation;
+#[macro_use]
+extern crate yoga;
 
 use cgmath::prelude::*;
 use cgmath::{Point3, Vector3};
@@ -12,13 +14,33 @@ use terrain_generation::gui::{Element, Gui, UIMeshPipe};
 use terrain_generation::{
     cube_mesh_builder, Camera, Events, Input, Lifecycle, LifecycleEvent, Renderer, VoxelMeshPipe,
 };
+use yoga::prelude::*;
+use yoga::FlexDirection;
 
 fn hello() -> Element {
-    Gui::create_element((20.0, 20.0), (400.0, 400.0))
-        .color([1.0, 1.0, 0.0])
+    Gui::create_element()
+        .background_color([1.0, 0.0, 1.0])
+        .style(&mut make_styles!(
+            FlexDirection(FlexDirection::Row)
+        ))
         .child(
-            Gui::create_element((20.0, 20.0), (200.0, 100.0))
-                .color([1.0, 0.0, 1.0])
+            Gui::create_element()
+                .background_color([1.0, 1.0, 0.0])
+                .style(&mut make_styles!(
+                    Width(32 pt),
+                    Height(32 pt),
+                    FlexGrow(1.0)
+                ))
+                .build(),
+        )
+        .child(
+            Gui::create_element()
+                .background_color([0.0, 1.0, 1.0])
+                .style(&mut make_styles!(
+                    Width(32 pt),
+                    Height(32 pt),
+                    FlexGrow(0.0)
+                ))
                 .build(),
         )
         .build()

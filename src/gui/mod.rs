@@ -1,7 +1,9 @@
 mod mesh;
 pub use self::mesh::{UIMesh, UIMeshPipe};
 use super::Renderer;
+use yoga::{Layout, Node};
 
+#[derive(Debug)]
 pub struct Rect {
     pub position: (f32, f32),
     pub size: (f32, f32),
@@ -14,28 +16,49 @@ impl Rect {
 }
 
 pub struct Element {
-    rect: Rect,
-    color: [f32; 3],
+    node: Node,
+    background_color: [f32; 3],
     children: Vec<Element>,
+}
+
+impl Element {
+    pub fn get_node_mut(&mut self) -> &mut Node {
+        &mut self.node
+    }
+
+    pub fn calculate_layout(&mut self) {
+        self.node
+            .calculate_layout(512.0, 512.0, yoga::Direction::LTR);
+    }
+
+    pub fn get_layout(&self) -> Layout {
+        self.node.get_layout()
+    }
 }
 
 pub struct ElementBuilder {
-    rect: Rect,
-    color: Option<[f32; 3]>,
+    style: std::vec::Vec<yoga::FlexStyle>,
+    background_color: Option<[f32; 3]>,
     children: Vec<Element>,
 }
 
+#[allow(clippy::new_without_default_derive)]
 impl ElementBuilder {
-    pub fn new(rect: Rect) -> Self {
+    pub fn new() -> Self {
         Self {
-            rect,
-            color: None,
+            style: Vec::new(),
+            background_color: None,
             children: Vec::with_capacity(0),
         }
     }
 
-    pub fn color(mut self, color: [f32; 3]) -> Self {
-        self.color = Some(color);
+    pub fn background_color(mut self, background_color: [f32; 3]) -> Self {
+        self.background_color = Some(background_color);
+        self
+    }
+
+    pub fn style(mut self, style: &mut std::vec::Vec<yoga::FlexStyle>) -> Self {
+        self.style.append(style);
         self
     }
 
@@ -44,15 +67,24 @@ impl ElementBuilder {
         self
     }
 
-    pub fn build(self) -> Element {
-        let color = match self.color {
-            Some(color) => color,
+    pub fn build(mut self) -> Element {
+        let mut node = Node::new();
+
+        node.apply_styles(&self.style);
+
+        let background_color = match self.background_color {
+            Some(background_color) => background_color,
             None => [1.0, 1.0, 1.0],
         };
 
+        for (i, child) in self.children.iter_mut().enumerate() {
+            let child_node = child.get_node_mut();
+            node.insert_child(child_node, i as u32);
+        }
+
         Element {
-            rect: self.rect,
-            color,
+            node,
+            background_color,
             children: self.children,
         }
     }
@@ -61,18 +93,34 @@ impl ElementBuilder {
 pub struct Gui {}
 
 impl Gui {
-    pub fn render(mut renderer: &mut Renderer, pipe: &UIMeshPipe, element: Element) {
-        let mut mesh = UIMesh::new(&mut renderer, &element.rect, element.color);
+    pub fn render(mut renderer: &mut Renderer, pipe: &UIMeshPipe, mut element: Element) {
+        println!("=========");
+        element.calculate_layout();
+        Gui::render_children(&mut renderer, pipe, element);
+    }
+
+    pub fn render_children(mut renderer: &mut Renderer, pipe: &UIMeshPipe, element: Element) {
+        println!(
+            "Layout is {:#?}, background_color: {:?}",
+            element.get_layout(),
+            element.background_color
+        );
+
+        let layout = element.get_layout();
+        let rect = Rect {
+            position: (layout.left(), layout.top()),
+            size: (layout.width(), layout.height()),
+        };
+
+        let mut mesh = UIMesh::new(&mut renderer, &rect, element.background_color);
         renderer.draw(&mut mesh, pipe);
 
         for child in element.children {
-            Gui::render(&mut renderer, pipe, child);
+            Gui::render_children(&mut renderer, pipe, child);
         }
     }
 
-    pub fn create_element(position: (f32, f32), size: (f32, f32)) -> ElementBuilder {
-        let rect = Rect::new(position, size);
-
-        ElementBuilder::new(rect)
+    pub fn create_element() -> ElementBuilder {
+        ElementBuilder::new()
     }
 }

@@ -1,8 +1,8 @@
 use super::super::gfx;
 use super::super::gfx::traits::FactoryExt;
 use super::super::{ColorFormat, Mesh, Pipeline, Renderer, Resources};
-use glutin::dpi::LogicalSize;
 use super::Rect;
+use glutin::dpi::LogicalSize;
 
 gfx_defines! {
     vertex Vertex {
@@ -47,33 +47,38 @@ pub struct UIMesh {
 }
 
 #[inline]
-fn pixel_to_homogeneous_coordinate(coordinate: (f32, f32), screen_size: LogicalSize) -> (f32, f32) {
+fn pixel_to_homogeneous_coordinate(x: f32, y: f32, screen_size: LogicalSize) -> (f32, f32) {
     (
-        coordinate.0 * 2.0 / screen_size.width as f32 - 1.0,
-        2.0 - coordinate.1 * 2.0 / screen_size.height as f32 - 1.0,
+        x * 2.0 / screen_size.width as f32 - 1.0,
+        2.0 - y * 2.0 / screen_size.height as f32 - 1.0,
     )
 }
 
 impl UIMesh {
     pub fn new(renderer: &mut Renderer, rect: &Rect, color: [f32; 3]) -> Self {
         let screen_size = renderer.window.get_outer_size().unwrap();
-        let homogeneous_position = pixel_to_homogeneous_coordinate(rect.position, screen_size);
-        let homogeneous_size = pixel_to_homogeneous_coordinate(rect.size, screen_size);
+        let position_left_top =
+            pixel_to_homogeneous_coordinate(rect.position.0, rect.position.1, screen_size);
+        let position_right_bottom = pixel_to_homogeneous_coordinate(
+            rect.position.0 + rect.size.0,
+            rect.position.1 + rect.size.1,
+            screen_size,
+        );
 
         let top_left = Vertex {
-            pos: [homogeneous_position.0, homogeneous_position.1],
+            pos: [position_left_top.0, position_left_top.1],
             color,
         };
         let top_right = Vertex {
-            pos: [homogeneous_size.0, homogeneous_position.1],
+            pos: [position_right_bottom.0, position_left_top.1],
             color,
         };
         let bottom_right = Vertex {
-            pos: [homogeneous_size.0, homogeneous_size.1],
+            pos: [position_right_bottom.0, position_right_bottom.1],
             color,
         };
         let bottom_left = Vertex {
-            pos: [homogeneous_position.0, homogeneous_size.1],
+            pos: [position_left_top.0, position_right_bottom.1],
             color,
         };
 
