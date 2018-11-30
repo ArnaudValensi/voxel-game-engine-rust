@@ -39,7 +39,7 @@ impl Element {
 pub struct ElementBuilder {
     style: std::vec::Vec<yoga::FlexStyle>,
     background_color: Option<[f32; 3]>,
-    children: Vec<Element>,
+    children: Vec<ElementBuilder>,
 }
 
 #[allow(clippy::new_without_default_derive)]
@@ -62,12 +62,12 @@ impl ElementBuilder {
         self
     }
 
-    pub fn child(mut self, element: Element) -> Self {
-        self.children.push(element);
+    pub fn child(mut self, element_builder: ElementBuilder) -> Self {
+        self.children.push(element_builder);
         self
     }
 
-    pub fn build(mut self) -> Element {
+    pub fn build(self) -> Element {
         let mut node = Node::new();
 
         node.apply_styles(&self.style);
@@ -77,15 +77,20 @@ impl ElementBuilder {
             None => [1.0, 1.0, 1.0],
         };
 
-        for (i, child) in self.children.iter_mut().enumerate() {
-            let child_node = child.get_node_mut();
-            node.insert_child(child_node, i as u32);
-        }
+        let mut i = 0;
+        let children = self.children.into_iter().map(|child| {
+            let mut child_element = child.build();
+            let child_element_node = child_element.get_node_mut();
+            node.insert_child(child_element_node, i as u32);
+            i += 1;
+
+            child_element
+        }).collect();
 
         Element {
             node,
             background_color,
-            children: self.children,
+            children,
         }
     }
 }

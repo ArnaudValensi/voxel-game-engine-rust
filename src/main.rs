@@ -30,8 +30,7 @@ fn hello() -> Element {
                     Width(32 pt),
                     Height(32 pt),
                     FlexGrow(1.0)
-                ))
-                .build(),
+                )),
         )
         .child(
             Gui::create_element()
@@ -40,8 +39,7 @@ fn hello() -> Element {
                     Width(32 pt),
                     Height(32 pt),
                     FlexGrow(0.0)
-                ))
-                .build(),
+                )),
         )
         .build()
 }
