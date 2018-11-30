@@ -1,7 +1,8 @@
-use super::gfx;
-use super::{ColorFormat, Mesh, Pipeline, Renderer, Resources};
-use gfx::traits::FactoryExt;
+use super::super::gfx;
+use super::super::gfx::traits::FactoryExt;
+use super::super::{ColorFormat, Mesh, Pipeline, Renderer, Resources};
 use glutin::dpi::LogicalSize;
+use super::Rect;
 
 gfx_defines! {
     vertex Vertex {
@@ -21,8 +22,8 @@ pub struct UIMeshPipe {
 
 impl UIMeshPipe {
     pub fn new(renderer: &mut Renderer) -> Self {
-        let vs_code = include_bytes!("shader/ui_150_core.glslv").to_vec();
-        let fs_code = include_bytes!("shader/ui_150_core.glslf").to_vec();
+        let vs_code = include_bytes!("../shader/ui_150_core.glslv").to_vec();
+        let fs_code = include_bytes!("../shader/ui_150_core.glslf").to_vec();
 
         let pso = renderer
             .factory
@@ -100,16 +101,5 @@ impl Mesh<pipe::Data<Resources>> for UIMesh {
 
     fn get_slice(&self) -> &gfx::Slice<Resources> {
         &self.slice
-    }
-}
-
-pub struct Rect {
-    pub position: (f32, f32),
-    pub size: (f32, f32),
-}
-
-impl Rect {
-    pub fn new(position: (f32, f32), size: (f32, f32)) -> Self {
-        Self { position, size }
     }
 }
