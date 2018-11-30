@@ -54,29 +54,26 @@ fn pixel_to_homogeneous_coordinate(coordinate: (f32, f32), screen_size: LogicalS
 }
 
 impl UIMesh {
-    pub fn new(renderer: &mut Renderer, rect: &Rect) -> Self {
+    pub fn new(renderer: &mut Renderer, rect: &Rect, color: [f32; 3]) -> Self {
         let screen_size = renderer.window.get_outer_size().unwrap();
-
-        const WHITE: [f32; 3] = [1.0, 1.0, 1.0];
-
         let homogeneous_position = pixel_to_homogeneous_coordinate(rect.position, screen_size);
         let homogeneous_size = pixel_to_homogeneous_coordinate(rect.size, screen_size);
 
         let top_left = Vertex {
             pos: [homogeneous_position.0, homogeneous_position.1],
-            color: WHITE,
+            color,
         };
         let top_right = Vertex {
             pos: [homogeneous_size.0, homogeneous_position.1],
-            color: WHITE,
+            color,
         };
         let bottom_right = Vertex {
             pos: [homogeneous_size.0, homogeneous_size.1],
-            color: WHITE,
+            color,
         };
         let bottom_left = Vertex {
             pos: [homogeneous_position.0, homogeneous_size.1],
-            color: WHITE,
+            color,
         };
 
         let suqare: &[Vertex] = &[top_left, top_right, bottom_right, bottom_left];

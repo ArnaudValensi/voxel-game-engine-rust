@@ -15,26 +15,60 @@ use terrain_generation::{
 
 struct Element {
     rect: Rect,
+    color: [f32; 3],
+}
+
+struct ElementBuilder {
+    rect: Rect,
+    color: Option<[f32; 3]>,
+}
+
+impl ElementBuilder {
+    pub fn new(rect: Rect) -> Self {
+        Self { rect, color: None }
+    }
+
+    pub fn color(mut self, color: [f32; 3]) -> Self {
+        self.color = Some(color);
+        self
+    }
+
+    pub fn build(self) -> Element {
+        let color = match self.color {
+            Some(color) => color,
+            None => [1.0, 1.0, 1.0],
+        };
+
+        Element {
+            rect: self.rect,
+            color,
+        }
+    }
 }
 
 struct Gui {}
 
 impl Gui {
     pub fn render(mut renderer: &mut Renderer, pipe: &UIMeshPipe, element: &Element) {
-        let mut mesh = UIMesh::new(&mut renderer, &element.rect);
+        let mut mesh = UIMesh::new(&mut renderer, &element.rect, element.color);
 
         renderer.draw(&mut mesh, pipe);
     }
 
-    fn create_element(position: (f32, f32), size: (f32, f32)) -> Element {
+    fn create_element(position: (f32, f32), size: (f32, f32)) -> ElementBuilder {
         let rect = Rect::new(position, size);
 
-        Element { rect }
+        ElementBuilder::new(rect)
     }
 }
 
 fn hello() -> Element {
-    Gui::create_element((20.0, 20.0), (200.0, 100.0))
+    Gui::create_element((20.0, 20.0), (400.0, 400.0))
+        .color([1.0, 1.0, 0.0])
+        .build()
+    // .child(|| {
+    //     Gui::create_element((20.0, 20.0), (200.0, 100.0))
+    // })
 }
 
 pub fn main() {
