@@ -17,12 +17,17 @@ use terrain_generation::{
 use yoga::prelude::*;
 use yoga::FlexDirection;
 
-fn hello() -> Element {
+fn hello<'a>() -> Element<'a> {
     Gui::create_element()
-        .background_color([1.0, 0.0, 1.0])
+        .background_color([1.0, 0.3, 1.0])
         .style(&mut make_styles!(
-            FlexDirection(FlexDirection::Row)
+            FlexDirection(FlexDirection::Row),
+            Padding(10 pt)
         ))
+        .on_mouse_enter(&|| {
+            println!("on_mouse_enter");
+            // bg_color = [1.0, 0.3, 1.0];
+        })
         .child(
             Gui::create_element()
                 .background_color([1.0, 1.0, 0.0])
@@ -49,6 +54,7 @@ pub fn main() {
     let mut events = Events::new();
     let mut lifecycle = Lifecycle::new();
     let mut renderer = Renderer::new(&mut events);
+    let mut gui = Gui::new();
 
     let pipe = VoxelMeshPipe::new(&mut renderer);
     let ui_pipe = UIMeshPipe::new(&mut renderer);
@@ -68,13 +74,16 @@ pub fn main() {
             LifecycleEvent::Update(_delta_time) => {
                 events.update(&mut renderer, &mut input);
 
+                let mouse_position = input.get_mouse_position();
+                gui.set_mouse_position(mouse_position.0 as f32, mouse_position.1 as f32);
+
                 mesh1.update_locals(&mut renderer, &camera.get_view(), camera.get_projection());
                 mesh2.update_locals(&mut renderer, &camera.get_view(), camera.get_projection());
 
                 renderer.clear();
                 renderer.draw(&mut mesh1, &pipe);
                 renderer.draw(&mut mesh2, &pipe);
-                Gui::render(&mut renderer, &ui_pipe, hello());
+                gui.render(&mut renderer, &ui_pipe, hello());
                 renderer.flush();
 
                 if !events.is_running() {

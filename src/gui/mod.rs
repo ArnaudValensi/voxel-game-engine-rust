@@ -13,15 +13,23 @@ impl Rect {
     pub fn new(position: (f32, f32), size: (f32, f32)) -> Self {
         Self { position, size }
     }
+
+    pub fn is_position_inside(&self, position: (f32, f32)) -> bool {
+        position.0 > self.position.0
+            && position.0 < self.position.0 + self.size.0
+            && position.1 > self.position.1
+            && position.1 < self.position.1 + self.size.1
+    }
 }
 
-pub struct Element {
+pub struct Element<'a> {
     node: Node,
     background_color: [f32; 3],
-    children: Vec<Element>,
+    children: Vec<Element<'a>>,
+    on_mouse_enter_fn: Option<&'a Fn()>,
 }
 
-impl Element {
+impl<'a> Element<'a> {
     pub fn get_node_mut(&mut self) -> &mut Node {
         &mut self.node
     }
@@ -34,21 +42,29 @@ impl Element {
     pub fn get_layout(&self) -> Layout {
         self.node.get_layout()
     }
+
+    pub fn dispatch_on_mouse_enter(&self) {
+        if let Some(on_mouse_enter_fn) = self.on_mouse_enter_fn {
+            (*on_mouse_enter_fn)();
+        }
+    }
 }
 
-pub struct ElementBuilder {
+pub struct ElementBuilder<'a> {
     style: std::vec::Vec<yoga::FlexStyle>,
     background_color: Option<[f32; 3]>,
-    children: Vec<ElementBuilder>,
+    children: Vec<ElementBuilder<'a>>,
+    on_mouse_enter_fn: Option<&'a Fn()>,
 }
 
 #[allow(clippy::new_without_default_derive)]
-impl ElementBuilder {
+impl<'a> ElementBuilder<'a> {
     pub fn new() -> Self {
         Self {
             style: Vec::new(),
             background_color: None,
             children: Vec::with_capacity(0),
+            on_mouse_enter_fn: None,
         }
     }
 
@@ -62,12 +78,17 @@ impl ElementBuilder {
         self
     }
 
-    pub fn child(mut self, element_builder: ElementBuilder) -> Self {
+    pub fn child(mut self, element_builder: ElementBuilder<'a>) -> Self {
         self.children.push(element_builder);
         self
     }
 
-    pub fn build(self) -> Element {
+    pub fn on_mouse_enter(mut self, callback: &'a Fn()) -> Self {
+        self.on_mouse_enter_fn = Some(callback);
+        self
+    }
+
+    pub fn build(self) -> Element<'a> {
         let mut node = Node::new();
 
         node.apply_styles(&self.style);
@@ -78,54 +99,69 @@ impl ElementBuilder {
         };
 
         let mut i = 0;
-        let children = self.children.into_iter().map(|child| {
-            let mut child_element = child.build();
-            let child_element_node = child_element.get_node_mut();
-            node.insert_child(child_element_node, i as u32);
-            i += 1;
+        let children = self
+            .children
+            .into_iter()
+            .map(|child| {
+                let mut child_element = child.build();
+                let child_element_node = child_element.get_node_mut();
+                node.insert_child(child_element_node, i as u32);
+                i += 1;
 
-            child_element
-        }).collect();
+                child_element
+            })
+            .collect();
 
         Element {
             node,
             background_color,
             children,
+            on_mouse_enter_fn: self.on_mouse_enter_fn,
         }
     }
 }
 
-pub struct Gui {}
+pub struct Gui {
+    mouse_position: (f32, f32),
+}
 
+#[allow(clippy::new_without_default_derive)]
 impl Gui {
-    pub fn render(mut renderer: &mut Renderer, pipe: &UIMeshPipe, mut element: Element) {
-        println!("=========");
-        element.calculate_layout();
-        Gui::render_children(&mut renderer, pipe, element);
+    pub fn new() -> Self {
+        Self {
+            mouse_position: (0.0, 0.0),
+        }
     }
 
-    pub fn render_children(mut renderer: &mut Renderer, pipe: &UIMeshPipe, element: Element) {
-        println!(
-            "Layout is {:#?}, background_color: {:?}",
-            element.get_layout(),
-            element.background_color
-        );
+    pub fn render(&self, mut renderer: &mut Renderer, pipe: &UIMeshPipe, mut element: Element) {
+        element.calculate_layout();
+        self.render_children(&mut renderer, pipe, element);
+    }
 
+    pub fn render_children(&self, mut renderer: &mut Renderer, pipe: &UIMeshPipe, element: Element) {
         let layout = element.get_layout();
         let rect = Rect {
             position: (layout.left(), layout.top()),
             size: (layout.width(), layout.height()),
         };
 
+        if rect.is_position_inside(self.mouse_position) {
+            element.dispatch_on_mouse_enter();
+        }
+
         let mut mesh = UIMesh::new(&mut renderer, &rect, element.background_color);
         renderer.draw(&mut mesh, pipe);
 
         for child in element.children {
-            Gui::render_children(&mut renderer, pipe, child);
+            self.render_children(&mut renderer, pipe, child);
         }
     }
 
-    pub fn create_element() -> ElementBuilder {
+    pub fn create_element<'a>() -> ElementBuilder<'a> {
         ElementBuilder::new()
+    }
+
+    pub fn set_mouse_position(&mut self, x: f32, y: f32) {
+        self.mouse_position = (x, y);
     }
 }
