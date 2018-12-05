@@ -10,27 +10,30 @@ extern crate yoga;
 
 use cgmath::prelude::*;
 use cgmath::{Point3, Vector3};
-use terrain_generation::gui::{Element, Gui, UIMeshPipe};
+use terrain_generation::gui::{Element, Gui, UIMeshPipe, Arg};
 use terrain_generation::{
     cube_mesh_builder, Camera, Events, Input, Lifecycle, LifecycleEvent, Renderer, VoxelMeshPipe,
 };
 use yoga::prelude::*;
 use yoga::FlexDirection;
 
-fn hello<'a>() -> Element<'a> {
+fn hello<'a>(gui: &mut Gui) -> Element<'a> {
+    let color_state = gui.use_state([1.0, 0.0, 1.0]);
+
     Gui::create_element()
-        .background_color([1.0, 0.3, 1.0])
+        .background_color(Arg::State(color_state))
         .style(&mut make_styles!(
             FlexDirection(FlexDirection::Row),
             Padding(10 pt)
         ))
         .on_mouse_enter(&|| {
             println!("on_mouse_enter");
-            // bg_color = [1.0, 0.3, 1.0];
+            // gui.set_state(color_state, [1.0, 0.3, 1.0]);
+            // color_state.set([1.0, 0.3, 1.0]);
         })
         .child(
             Gui::create_element()
-                .background_color([1.0, 1.0, 0.0])
+                .background_color(Arg::Value([1.0, 1.0, 0.0]))
                 .style(&mut make_styles!(
                     Width(32 pt),
                     Height(32 pt),
@@ -39,7 +42,7 @@ fn hello<'a>() -> Element<'a> {
         )
         .child(
             Gui::create_element()
-                .background_color([0.0, 1.0, 1.0])
+                .background_color(Arg::Value([0.0, 1.0, 1.0]))
                 .style(&mut make_styles!(
                     Width(32 pt),
                     Height(32 pt),
@@ -80,10 +83,12 @@ pub fn main() {
                 mesh1.update_locals(&mut renderer, &camera.get_view(), camera.get_projection());
                 mesh2.update_locals(&mut renderer, &camera.get_view(), camera.get_projection());
 
+                let hello = hello(&mut gui);
+
                 renderer.clear();
                 renderer.draw(&mut mesh1, &pipe);
                 renderer.draw(&mut mesh2, &pipe);
-                gui.render(&mut renderer, &ui_pipe, hello());
+                gui.render(&mut renderer, &ui_pipe, hello);
                 renderer.flush();
 
                 if !events.is_running() {

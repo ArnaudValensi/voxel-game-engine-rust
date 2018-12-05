@@ -52,7 +52,7 @@ impl<'a> Element<'a> {
 
 pub struct ElementBuilder<'a> {
     style: std::vec::Vec<yoga::FlexStyle>,
-    background_color: Option<[f32; 3]>,
+    background_color: Option<State<[f32; 3]>>,
     children: Vec<ElementBuilder<'a>>,
     on_mouse_enter_fn: Option<&'a Fn()>,
 }
@@ -68,8 +68,11 @@ impl<'a> ElementBuilder<'a> {
         }
     }
 
-    pub fn background_color(mut self, background_color: [f32; 3]) -> Self {
-        self.background_color = Some(background_color);
+    pub fn background_color(mut self, background_color: Arg<[f32; 3]>) -> Self {
+        match background_color {
+            Arg::Value(value) => self.background_color = Some(State::new(value)),
+            Arg::State(state) => self.background_color = Some(state)
+        }
         self
     }
 
@@ -94,7 +97,7 @@ impl<'a> ElementBuilder<'a> {
         node.apply_styles(&self.style);
 
         let background_color = match self.background_color {
-            Some(background_color) => background_color,
+            Some(background_color) => background_color.value,
             None => [1.0, 1.0, 1.0],
         };
 
@@ -121,7 +124,29 @@ impl<'a> ElementBuilder<'a> {
     }
 }
 
+pub enum Arg<T> {
+    Value(T),
+    State(State<T>)
+}
+
+pub struct State<T> {
+    value: T,
+}
+
+impl<T> State<T> {
+    pub fn new(value: T) -> Self {
+        Self {
+            value,
+        }
+    }
+
+    pub fn set(&mut self, value: T) {
+        self.value = value;
+    }
+}
+
 pub struct Gui {
+    // states: Vec<State<>>
     mouse_position: (f32, f32),
 }
 
@@ -160,6 +185,14 @@ impl Gui {
     pub fn create_element<'a>() -> ElementBuilder<'a> {
         ElementBuilder::new()
     }
+
+    pub fn use_state<T>(&mut self, value: T) -> State<T> {
+        State::new(value)
+    }
+
+    // pub fn set_state<T>(&mut self, value: T) {
+
+    // }
 
     pub fn set_mouse_position(&mut self, x: f32, y: f32) {
         self.mouse_position = (x, y);
