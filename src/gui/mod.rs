@@ -2,6 +2,7 @@ mod mesh;
 pub use self::mesh::{UIMesh, UIMeshPipe};
 use super::Renderer;
 use yoga::{Layout, Node};
+use anymap::AnyMap;
 
 #[derive(Debug)]
 pub struct Rect {
@@ -197,4 +198,36 @@ impl Gui {
     pub fn set_mouse_position(&mut self, x: f32, y: f32) {
         self.mouse_position = (x, y);
     }
+}
+
+struct Store {
+    stores: AnyMap,
+}
+
+impl Store {
+    pub fn new() -> Self {
+        Self {
+            stores: AnyMap::new(),
+        }
+    }
+
+    pub fn add_state<T>(&mut self, state: State<T>) -> u32 {
+        let state_store_opt = self.stores.get_mut::<Vec<State<T>>>();
+
+        if let Some(state_store) = state_store_opt {
+            state_store.push(state);
+            state_store.len() as u32 - 1
+        } else {
+            let new_store = Vec::new();
+
+            new_store.push(state);
+            self.stores.insert(new_store);
+            0
+        }
+    }
+}
+
+#[test]
+fn test_store() {
+
 }

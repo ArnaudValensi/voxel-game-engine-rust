@@ -4,6 +4,7 @@ extern crate glutin;
 #[macro_use]
 extern crate gfx;
 extern crate yoga;
+extern crate anymap;
 
 pub mod transform;
 pub use self::transform::Transform;
